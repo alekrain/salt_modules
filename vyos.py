@@ -43,7 +43,13 @@
 
 import re
 import logging
-import pexpect
+
+# Import third party libs
+try:
+    import pexpect
+    HAS_PEXPECT = True
+except ImportError:
+    HAS_PEXPECT = False
 
 log = logging.getLogger(__name__)
 vyos_dir = '/opt/vyatta/'
@@ -53,12 +59,11 @@ __virtualname__ = 'vyos'
 
 def __virtual__():
     # Only load on vyOS machines.
-    if api:
+    if api and HAS_PEXPECT:
         return __virtualname__
     else:
-        log.error('The vyOS shell api could not be found at {}.'.format(api))
+        log.warning('vyOS module not loaded because the vyOS shell api is not at {}, or the pexpect module is missing.'.format(api))
         return False
-
 
 class VyOSError(Exception):
     """ Raised on general errors """
@@ -98,7 +103,7 @@ class Router(object):
 
     def execute_command(self, command, config_mode_required=False):
         """ Executed a command on the router
-    
+
         :param command: The configuration command
         :param config_mode_required: Specifies if the command needs to be executed from config mode.
         :returns: string -- Command output
@@ -139,7 +144,7 @@ class Router(object):
 
     def status(self):
         """ Returns the router object status for debugging
-    
+
         :returns: dict -- Router object status
         """
         return {"logged_in": self.logged_in,
@@ -307,5 +312,3 @@ def _delete(self, path):
         if re.search(r"Nothing\s+to\s+delete", output):
             raise ConfigError(output)
         self.__session_modified = True
-
-
